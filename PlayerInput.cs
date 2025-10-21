@@ -3,31 +3,26 @@ using UnityEngine.InputSystem.Utilities;
 
 public class PlayerInput : MonoBehaviour
 {
-    [Header("Speed")]
-    [SerializeField] private float moveSpd; //Def = 10
-    //[SerializeField] private float turnSpd; //Def = 150
+    [Header("Multipliers")]
+    [SerializeField] private float moveSpd; //Def = 7
+    [SerializeField] private float rotateSpd; //Def = 10
+    [SerializeField] private float jumpHeight; //Def = 5
+    [SerializeField] private float gravityMultiplier; //Def = 5
 
-    //[Header("LayerMasks")]
-    //[SerializeField] private LayerMask groundLayer;
+    [SerializeField] private float grndHeight;
 
-    [Header("Collider")]
+    [Header("Colliders")]
     [SerializeField] private BoxCollider grndCheck;
 
-    private Vector3 moveHorizontal;
-    private Vector3 moveVertical;
-    private float horizontalIp;
-    private float verticalIp;
+    private float velocity;
+    private Collider currentCollider;
 
-    private const string HORIZONTAL = "Horizontal";
-    private const string VERTICAL = "Vertical";
     private const string GROUND = "Ground";
 
     void Update()
     {
         MovePlayer();
-        if(Input.GetKeyDown(KeyCode.E)) {
-            Jump();
-        }
+        Jump();
     }
 
     private void MovePlayer() {
@@ -50,20 +45,44 @@ public class PlayerInput : MonoBehaviour
 
         Vector3 moveDir = new Vector3(inputVector.x, 0f, inputVector.y);
         transform.position += moveDir * moveSpd * Time.deltaTime;
-    }
 
-    private void Jump() {
-        IsGrounded();
+        transform.forward = Vector3.Slerp(transform.forward, moveDir, Time.deltaTime * rotateSpd);
     }
 
     private bool IsGrounded() {
-        Collider[] colliderArray = Physics.OverlapBox(grndCheck.center, grndCheck.size);
-        foreach(Collider collider in colliderArray) {
-            if(collider.tag == GROUND) {
-                Debug.Log("Grounded");
+        //Physics.Raycast(grndCheck.size + transform.position, Vector3.down, grndCheck.size.y / 2);
+
+        Collider[] colliderArray = Physics.OverlapBox(grndCheck.center + transform.position, grndCheck.size);
+
+        foreach (Collider collider in colliderArray) {
+            if (collider.CompareTag(GROUND)) {
+                currentCollider = collider;
                 return true;
             }
         }
         return false;
+    }
+
+    private void Jump() {
+        Debug.Log(transform.position);
+        velocity += Physics.gravity.y * gravityMultiplier * Time.deltaTime;
+
+        if (IsGrounded() && Input.GetKeyDown(KeyCode.E)) {
+
+            velocity = Mathf.Sqrt(-2 * jumpHeight * (Physics.gravity.y * gravityMultiplier));
+
+            Vector3 surface = Physics.ClosestPoint(
+                transform.position,
+                currentCollider,
+                currentCollider.transform.position,
+                currentCollider.transform.rotation) + Vector3.up * grndHeight;
+            transform.position = new Vector3(transform.position.x, surface.y, transform.position.z);
+        }
+
+        if(velocity < 0f && IsGrounded()) {
+            velocity = 0;
+        }
+
+        transform.Translate(new Vector3(0f, velocity, 0f) * Time.deltaTime);
     }
 }
