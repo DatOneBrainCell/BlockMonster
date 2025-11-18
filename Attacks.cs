@@ -12,6 +12,8 @@ public class Attacks : MonoBehaviour
     [Header ("LayerMask")]
     [SerializeField] LayerMask creatureLayer;
 
+    [SerializeField] PlayerInput pIn;
+
     private RaycastHit centrePt; //First hit
 
     void Update()
@@ -26,6 +28,7 @@ public class Attacks : MonoBehaviour
 
     void BasicAttack() {
         AreaDamage(atkArea.position, 1.5f, creatureLayer);
+        pIn.Jump();
     }
 
     private void SpecialAttack() {
